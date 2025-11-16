@@ -1,0 +1,13 @@
+{
+  "name": "event/registration",
+  "description": "Event Registration & Attendance System",
+  "type": "project",
+  "license": "MIT",
+  "require": {
+    "endroid/qr-code": "^5",
+    "phpmailer/phpmailer": "^6"
+  },
+  "autoload": {
+    "psr-4": { "App\\": "src/" }
+  }
+}
