@@ -92,8 +92,8 @@ class AdvancedExportController
         $stmt = $pdo->prepare("SELECT a.id,a.attendance_date,a.time_in,p.uuid,(CONCAT(p.first_name,' ',p.last_name)) AS name,p.agency FROM attendance a JOIN participants p ON p.id=a.participant_id $sqlWhere ORDER BY a.id DESC");
         $stmt->execute($bind);
 
-        $pdf = new \TCPDF();
-        $pdf->AddPage();
+        $pdf = new \TCPDF('L');
+        $pdf->AddPage('L');
         $html = '<h3>Attendance</h3><table border="1" cellpadding="4"><tr><th>Date</th><th>Time</th><th>Name</th><th>Agency</th><th>Signature</th></tr>';
         while ($r = $stmt->fetch()) {
             $img = '/signature.php?aid='.$r['id'];

@@ -59,8 +59,8 @@ class ReportController
         $pdfAvailable = class_exists('TCPDF');
         $usePdf = ($format === 'pdf' && $pdfAvailable) || ($format === 'auto' && $pdfAvailable);
         if ($usePdf) {
-            $pdf = new \TCPDF();
-            $pdf->AddPage();
+            $pdf = new \TCPDF('L');
+            $pdf->AddPage('L');
             $html = '';
             $html .= '<table width="100%"><tr>';
             $html .= '<td width="20%">'.($leftLogoPath?('<img src="data:image/'.($this->extOf($leftLogoPath)).';base64,'.base64_encode(file_get_contents($leftLogoPath)).'" height="60">'):'').'</td>';
