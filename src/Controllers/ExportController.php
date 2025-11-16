@@ -23,7 +23,16 @@ class ExportController
         $hdr = ['Timestamp','Email Address','First Name','Middle Name','Last Name','Nickname','Sex','Sector','Agency','Designation','Office Email','Contact No'];
         fputcsv($out, $hdr);
         $pdo = Database::pdo();
-        $stmt = $pdo->query('SELECT timestamp,email,first_name,middle_name,last_name,nickname,sex,sector,agency,designation,office_email,contact_no FROM participants ORDER BY id DESC');
+        $where=[];$bind=[];
+        $q = trim((string)($_GET['q'] ?? ''));
+        $agency = trim((string)($_GET['agency'] ?? ''));
+        $sector = trim((string)($_GET['sector'] ?? ''));
+        if ($q !== '') { $where[]='(first_name LIKE ? OR last_name LIKE ?)'; $bind[]="%{$q}%"; $bind[]="%{$q}%"; }
+        if ($agency !== '') { $where[]='agency LIKE ?'; $bind[]="%{$agency}%"; }
+        if ($sector !== '') { $where[]='sector LIKE ?'; $bind[]="%{$sector}%"; }
+        $sqlWhere = $where?('WHERE '.implode(' AND ',$where)) : '';
+        $stmt = $pdo->prepare("SELECT timestamp,email,first_name,middle_name,last_name,nickname,sex,sector,agency,designation,office_email,contact_no FROM participants $sqlWhere ORDER BY id DESC");
+        $stmt->execute($bind);
         while ($r = $stmt->fetch()) {
             fputcsv($out, [
                 $r['timestamp'], $r['email'], $r['first_name'], $r['middle_name'], $r['last_name'], $r['nickname'], $r['sex'], $r['sector'], $r['agency'], $r['designation'], $r['office_email'], $r['contact_no']
@@ -42,7 +51,14 @@ class ExportController
         $hdr = ['Attendance Date','Time In','UUID','Name','Agency','Signature Path'];
         fputcsv($out, $hdr);
         $pdo = Database::pdo();
-        $stmt = $pdo->query('SELECT a.attendance_date,a.time_in,p.uuid,(CONCAT(p.first_name," ",p.last_name)) AS name,p.agency,a.signature_path FROM attendance a JOIN participants p ON p.id=a.participant_id ORDER BY a.id DESC');
+        $where=[];$bind=[];
+        $date = trim((string)($_GET['date'] ?? ''));
+        $agency = trim((string)($_GET['agency'] ?? ''));
+        if ($date !== '') { $where[]='a.attendance_date = ?'; $bind[]=$date; }
+        if ($agency !== '') { $where[]='p.agency LIKE ?'; $bind[]="%{$agency}%"; }
+        $sqlWhere = $where?('WHERE '.implode(' AND ',$where)) : '';
+        $stmt = $pdo->prepare("SELECT a.attendance_date,a.time_in,p.uuid,(CONCAT(p.first_name,' ',p.last_name)) AS name,p.agency,a.signature_path FROM attendance a JOIN participants p ON p.id=a.participant_id $sqlWhere ORDER BY a.id DESC");
+        $stmt->execute($bind);
         while ($r = $stmt->fetch()) {
             fputcsv($out, [$r['attendance_date'],$r['time_in'],$r['uuid'],$r['name'],$r['agency'],$r['signature_path']]);
         }

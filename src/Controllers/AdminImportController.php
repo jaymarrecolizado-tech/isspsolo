@@ -103,7 +103,7 @@ class AdminImportController
         fclose($fh);
         if ($batch) { [$i,$u,$c] = $this->runBatch($pdo, $batch); $inserted+=$i; $updated+=$u; $changes = array_merge($changes, $c); }
 
-        $summary = json_encode(['inserted'=>$inserted,'updated'=>$updated,'skipped'=>$skipped,'errored'=>$errored,'changes'=>$changes], JSON_UNESCAPED_UNICODE);
+        $summary = json_encode(['inserted'=>$inserted,'updated'=>$updated,'skipped'=>$skipped,'errored'=>$errored,'changes'=>$changes,'stored_csv'=>$file], JSON_UNESCAPED_UNICODE);
         $log = $pdo->prepare('INSERT INTO import_logs (admin_id, file_name, action, duplicate_strategy, summary) VALUES (?,?,?,?,?)');
         $log->execute([(int)$_SESSION['admin_id'], basename($file), 'execute', $strategy, $summary]);
 

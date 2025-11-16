@@ -14,7 +14,10 @@ use App\Controllers\AdminImportController;
 use App\Controllers\ExportController;
 use App\Controllers\SampleCsvController;
 use App\Controllers\AdminEventsController;
+use App\Controllers\AdminAttendanceGalleryController;
+use App\Controllers\SettingsController;
 use App\Controllers\AdminLogsController;
+use App\Controllers\AdvancedExportController;
 
 spl_autoload_register(function($class){
     $prefix = 'App\\';
@@ -78,6 +81,18 @@ if ($route === 'admin_attendance') {
     (new AdminAttendanceController())->list();
     exit;
 }
+if ($route === 'admin_attendance_gallery') {
+    (new AdminAttendanceGalleryController())->list();
+    exit;
+}
+if ($route === 'admin_settings') {
+    (new SettingsController())->form();
+    exit;
+}
+if ($route === 'admin_settings_save' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    (new SettingsController())->save();
+    exit;
+}
 if ($route === 'admin_import') {
     (new AdminImportController())->form();
     exit;
@@ -121,6 +136,18 @@ if ($route === 'export_registrants_csv') {
 }
 if ($route === 'export_attendance_csv') {
     (new ExportController())->attendanceCsv();
+    exit;
+}
+if ($route === 'export_registrants_xlsx') {
+    (new AdvancedExportController())->registrantsXlsx();
+    exit;
+}
+if ($route === 'export_attendance_xlsx') {
+    (new AdvancedExportController())->attendanceXlsx();
+    exit;
+}
+if ($route === 'export_attendance_pdf') {
+    (new AdvancedExportController())->attendancePdf();
     exit;
 }
 if ($route === 'sample_csv') {

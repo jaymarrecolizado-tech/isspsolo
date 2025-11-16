@@ -37,7 +37,9 @@ class AdminRegistrantsController
         $total = (int)$pdo->query('SELECT FOUND_ROWS() AS t')->fetch()['t'];
         $pages = max(1, (int)ceil($total / $per));
 
-        $data = compact('rows','page','pages','q','agency','sector','total');
+        $agenciesList = $pdo->query("SELECT DISTINCT agency FROM participants WHERE agency IS NOT NULL AND agency <> '' ORDER BY agency ASC LIMIT 500")->fetchAll();
+        $sectorsList = $pdo->query("SELECT DISTINCT sector FROM participants WHERE sector IS NOT NULL AND sector <> '' ORDER BY sector ASC LIMIT 500")->fetchAll();
+        $data = compact('rows','page','pages','q','agency','sector','total','agenciesList','sectorsList');
         require dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR . 'admin_registrants.php';
     }
 }

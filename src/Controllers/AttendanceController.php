@@ -49,4 +49,33 @@ class AttendanceController
         $ins->execute([(int)$row['id'], $date, $time, $path, $eventId]);
         echo json_encode(['ok'=>true]);
     }
+
+    public function submitJsonForTest(array $payload, string $csrf): array
+    {
+        if (!function_exists('csrf_check') || !csrf_check($csrf)) return ['error'=>'csrf'];
+        if (empty($_SESSION['staff'])) return ['error'=>'forbidden'];
+        $uuid = trim((string)($payload['uuid'] ?? ''));
+        $sig = (string)($payload['signature'] ?? '');
+        if ($uuid === '' || $sig === '') return ['error'=>'missing'];
+        $pdo = \App\Services\Database::pdo();
+        $stmt = $pdo->prepare('SELECT id FROM participants WHERE uuid = ?');
+        $stmt->execute([$uuid]);
+        $row = $stmt->fetch();
+        if (!$row) return ['error'=>'not_found'];
+        $event = $pdo->query('SELECT id, enforce_single_time_in FROM events WHERE active=1 ORDER BY id DESC LIMIT 1')->fetch();
+        $eventId = $event ? (int)$event['id'] : null;
+        $enforce = $event ? (int)$event['enforce_single_time_in'] === 1 : false;
+        $path = \App\Services\SignatureService::saveBase64($uuid, $sig);
+        $date = date('Y-m-d');
+        $time = date('H:i:s');
+        if ($enforce) {
+            $chk = $pdo->prepare('SELECT id FROM attendance WHERE participant_id=? AND attendance_date=?' . ($eventId ? ' AND event_id=?' : ''));
+            $bind = $eventId ? [(int)$row['id'],$date,$eventId] : [(int)$row['id'],$date];
+            $chk->execute($bind);
+            if ($chk->fetch()) return ['ok'=>false,'error'=>'already_marked'];
+        }
+        $ins = $pdo->prepare('INSERT INTO attendance (participant_id, attendance_date, time_in, signature_path, event_id) VALUES (?,?,?,?,?)');
+        $ins->execute([(int)$row['id'], $date, $time, $path, $eventId]);
+        return ['ok'=>true];
+    }
 }
