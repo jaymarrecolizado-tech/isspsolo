@@ -21,7 +21,15 @@ if (is_file($envPath)) {
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
 header('Referrer-Policy: no-referrer');
-header("Content-Security-Policy: default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data:");
+$strict = getenv('CSP_STRICT') === 'true';
+if ($strict) {
+    header("Content-Security-Policy: default-src 'self' data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'self'");
+} else {
+    header("Content-Security-Policy: default-src 'self' 'unsafe-inline' https: data:");
+}
+if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+    header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+}
 
 function env(string $key, ?string $default = null): ?string {
     $v = getenv($key);

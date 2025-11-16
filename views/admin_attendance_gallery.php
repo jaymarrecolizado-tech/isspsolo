@@ -19,6 +19,14 @@ declare(strict_types=1);
 </nav>
 <div class="container py-3">
   <h1 class="h5">Attendance Gallery</h1>
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="/?r=admin_registrants">Admin</a></li>
+      <li class="breadcrumb-item"><a href="/?r=admin_attendance">Attendance</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Gallery</li>
+    </ol>
+  </nav>
   <form method="get" action="/" class="mb-3">
     <input type="hidden" name="r" value="admin_attendance_gallery">
     <div class="row g-2">

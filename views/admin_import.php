@@ -24,6 +24,13 @@ $errors = $errors ?? [];
       <a class="btn btn-outline-secondary btn-sm" href="/?r=admin_report">Report</a>
     </div>
   </div>
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="/?r=admin_registrants">Admin</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Import</li>
+    </ol>
+  </nav>
   <form method="post" action="/?r=admin_import_preview" enctype="multipart/form-data" class="mb-3">
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($token, ENT_QUOTES) ?>">
     <div class="row g-2">

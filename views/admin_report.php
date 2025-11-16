@@ -20,8 +20,16 @@ $token = function_exists('csrf_token') ? csrf_token() : '';
 </nav>
 <div class="container py-3" style="max-width:800px">
   <h1 class="h5 mb-3">Attendance Report Builder</h1>
-  <form method="post" action="/?r=admin_report_generate" class="row g-3">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="/?r=admin_registrants">Admin</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Report</li>
+    </ol>
+  </nav>
+  <form method="post" action="/?r=admin_report_generate" class="row g-3" enctype="multipart/form-data">
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($token, ENT_QUOTES) ?>">
+    <input type="hidden" name="download" value="0">
     <div class="col-12 col-md-6">
       <label class="form-label">Report Title</label>
       <input name="title" class="form-control" value="Attendance Report">
@@ -72,8 +80,10 @@ $token = function_exists('csrf_token') ? csrf_token() : '';
         <div class="col-6"><input type="file" name="right_logo" accept="image/*" class="form-control"></div>
       </div>
     </div>
-    <div class="col-12">
-      <button class="btn btn-primary">Generate</button>
+    <div class="col-12 d-flex gap-2">
+      <button class="btn btn-primary" type="submit" onclick="document.querySelector('select[name=format]').value='html';document.querySelector('input[name=download]').value='0'">Generate HTML</button>
+      <button class="btn btn-outline-primary" type="submit" onclick="document.querySelector('select[name=format]').value='pdf';document.querySelector('input[name=download]').value='0'">Export PDF (Inline)</button>
+      <button class="btn btn-success" type="submit" onclick="document.querySelector('select[name=format]').value='pdf';document.querySelector('input[name=download]').value='1'">Download PDF</button>
     </div>
   </form>
   <hr class="my-4">

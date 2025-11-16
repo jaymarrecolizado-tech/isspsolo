@@ -5,7 +5,19 @@ require dirname(__DIR__) . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR 
 
 if (empty($_SESSION['admin_id'])) { http_response_code(403); echo 'Forbidden'; exit; }
 
-require dirname(__DIR__) . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR . 'Services' . DIRECTORY_SEPARATOR . 'Database.php';
+// Autoload App classes
+spl_autoload_register(function($class){
+    $prefix = 'App\\';
+    $base = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR;
+    if (strncmp($prefix, $class, strlen($prefix)) !== 0) return;
+    $rel = str_replace('\\', DIRECTORY_SEPARATOR, substr($class, strlen($prefix)));
+    $file = $base . $rel . '.php';
+    if (is_file($file)) require $file;
+});
+// Vendor autoload if available
+if (is_file(dirname(__DIR__) . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php')) {
+    require dirname(__DIR__) . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
+}
 
 $aid = isset($_GET['aid']) ? (int)$_GET['aid'] : 0;
 if ($aid <= 0) { http_response_code(400); echo 'Bad Request'; exit; }
@@ -17,7 +29,7 @@ $row = $stmt->fetch();
 if (!$row) { http_response_code(404); echo 'Not Found'; exit; }
 $path = (string)$row['signature_path'];
 if (!is_file($path)) { http_response_code(404); echo 'Not Found'; exit; }
-\App\Services\Logger::log((int)$_SESSION['admin_id'], 'signature_view', ['attendance_id'=>$aid]);
+if (class_exists('App\\Services\\Logger')) { \App\Services\Logger::log((int)$_SESSION['admin_id'], 'signature_view', ['attendance_id'=>$aid]); }
 
 header('Content-Type: image/png');
 header('Content-Disposition: inline');

@@ -21,6 +21,13 @@ declare(strict_types=1);
     <h1 class="h5">Registrants</h1>
     <div><a class="btn btn-outline-secondary btn-sm" href="/?r=admin_logout">Logout</a></div>
   </div>
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="/?r=admin_registrants">Admin</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Registrants</li>
+    </ol>
+  </nav>
   <form method="get" action="/">
     <input type="hidden" name="r" value="admin_registrants">
     <div class="row g-2">
@@ -37,7 +44,12 @@ declare(strict_types=1);
           <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#sectorExpand">Expand</button>
         </div>
       </div>
-      <div class="col-12 col-md-3"><button class="btn btn-primary w-100">Search</button></div>
+      <div class="col-12 col-md-3">
+        <button id="searchBtn" class="btn btn-primary w-100" type="submit">
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" style="display:none"></span>
+          Search
+        </button>
+      </div>
     </div>
   </form>
   <datalist id="agencyList">
@@ -91,5 +103,15 @@ declare(strict_types=1);
     </ul>
   </nav>
 </div>
+<script>
+(function(){
+  const form = document.querySelector('form[action="/"]');
+  const btn = document.getElementById('searchBtn');
+  const spin = btn?.querySelector('.spinner-border');
+  if (form && btn && spin) {
+    form.addEventListener('submit', ()=>{ spin.style.display='inline-block'; btn.setAttribute('disabled','disabled'); });
+  }
+})();
+</script>
 </body>
 </html>

@@ -18,6 +18,7 @@ use App\Controllers\AdminAttendanceGalleryController;
 use App\Controllers\SettingsController;
 use App\Controllers\AdminLogsController;
 use App\Controllers\AdvancedExportController;
+use App\Controllers\AdminSignatureController;
 use App\Controllers\ReportController;
 
 spl_autoload_register(function($class){
@@ -129,6 +130,14 @@ if ($route === 'admin_report_save' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 if ($route === 'admin_report_load') {
     (new ReportController())->loadTemplate();
+    exit;
+}
+if ($route === 'admin_signature_replace' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    (new AdminSignatureController())->replace();
+    exit;
+}
+if ($route === 'admin_signature_new' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    (new AdminSignatureController())->addNew();
     exit;
 }
 if ($route === 'admin_logs') {

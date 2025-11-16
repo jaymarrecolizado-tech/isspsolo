@@ -20,6 +20,13 @@ $token = function_exists('csrf_token') ? csrf_token() : '';
 </nav>
 <div class="container py-3" style="max-width:720px">
   <h1 class="h5 mb-3">SMTP Settings</h1>
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="/?r=admin_registrants">Admin</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Settings</li>
+    </ol>
+  </nav>
   <form method="post" action="/?r=admin_settings_save" class="row g-3">
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($token, ENT_QUOTES) ?>">
     <div class="col-12 col-md-6">

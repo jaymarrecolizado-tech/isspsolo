@@ -31,6 +31,7 @@ class ReportController
         $subtitle = trim((string)($_POST['subtitle'] ?? ''));
         $fields = (array)($_POST['fields'] ?? []);
         $format = trim((string)($_POST['format'] ?? 'auto'));
+        $download = ((string)($_POST['download'] ?? '0')) === '1';
         $start = trim((string)($_POST['start_date'] ?? ''));
         $end = trim((string)($_POST['end_date'] ?? ''));
         $leftLogoPath = null; $rightLogoPath = null;
@@ -86,7 +87,7 @@ class ReportController
             }
             $html .= '</table>';
             $pdf->writeHTML($html);
-            $pdf->Output('attendance_report.pdf', 'I');
+            $pdf->Output('attendance_report.pdf', $download ? 'D' : 'I');
             return;
         }
         header('Content-Type: text/html; charset=UTF-8');
