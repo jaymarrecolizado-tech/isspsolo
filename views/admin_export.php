@@ -18,6 +18,13 @@ declare(strict_types=1);
       <a class="btn btn-outline-secondary btn-sm" href="/?r=admin_attendance">Attendance</a>
     </div>
   </div>
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="/?r=admin_registrants">Admin</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Export</li>
+    </ol>
+  </nav>
   <div class="row g-3">
     <div class="col-12 col-md-4">
       <div class="card"><div class="card-body">
@@ -38,6 +45,23 @@ declare(strict_types=1);
         <h2 class="h6">Sample CSV Template</h2>
         <p class="text-muted">Headers for registrants import.</p>
         <a class="btn btn-outline-secondary" href="/?r=sample_csv">Download Template</a>
+      </div></div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="card"><div class="card-body">
+        <h2 class="h6">Attendance Report (PDF/HTML)</h2>
+        <p class="text-muted">Design header and choose fields.</p>
+        <a class="btn btn-primary" href="/?r=admin_report">Open Report Builder</a>
+      </div></div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="card"><div class="card-body">
+        <h2 class="h6">Quick Attendance PDF</h2>
+        <p class="text-muted">Simple layout with signature thumbnails.</p>
+        <div class="d-flex gap-2">
+          <a class="btn btn-outline-primary" href="/?r=export_attendance_pdf">Export PDF (Inline)</a>
+          <a class="btn btn-success" href="/?r=export_attendance_pdf&download=1">Download PDF</a>
+        </div>
       </div></div>
     </div>
   </div>

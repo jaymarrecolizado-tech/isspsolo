@@ -16,6 +16,8 @@ class ExportController
     public function registrantsCsv(): void
     {
         if (!$this->requireAdmin()) return;
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        if (!\App\Services\RateLimiter::allow('export_reg_csv:'.$ip, 10, 60)) { http_response_code(429); echo 'Too Many Requests'; return; }
         \App\Services\Logger::log((int)$_SESSION['admin_id'], 'export_registrants_csv');
         header('Content-Type: text/csv; charset=UTF-8');
         header('Content-Disposition: attachment; filename="registrants.csv"');
@@ -44,6 +46,8 @@ class ExportController
     public function attendanceCsv(): void
     {
         if (!$this->requireAdmin()) return;
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        if (!\App\Services\RateLimiter::allow('export_att_csv:'.$ip, 10, 60)) { http_response_code(429); echo 'Too Many Requests'; return; }
         \App\Services\Logger::log((int)$_SESSION['admin_id'], 'export_attendance_csv');
         header('Content-Type: text/csv; charset=UTF-8');
         header('Content-Disposition: attachment; filename="attendance.csv"');

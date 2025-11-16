@@ -16,6 +16,8 @@ class AdvancedExportController
     public function registrantsXlsx(): void
     {
         if (!$this->requireAdmin()) return;
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        if (!\App\Services\RateLimiter::allow('export_reg_xlsx:'.$ip, 5, 60)) { http_response_code(429); echo 'Too Many Requests'; return; }
         if (!class_exists('PhpOffice\\PhpSpreadsheet\\Spreadsheet')) { header('Content-Type: text/plain'); echo 'XLSX library not installed'; return; }
         $pdo = Database::pdo();
         $where=[];$bind=[];
@@ -46,6 +48,8 @@ class AdvancedExportController
     public function attendanceXlsx(): void
     {
         if (!$this->requireAdmin()) return;
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        if (!\App\Services\RateLimiter::allow('export_att_xlsx:'.$ip, 5, 60)) { http_response_code(429); echo 'Too Many Requests'; return; }
         if (!class_exists('PhpOffice\\PhpSpreadsheet\\Spreadsheet')) { header('Content-Type: text/plain'); echo 'XLSX library not installed'; return; }
         $pdo = Database::pdo();
         $where=[];$bind=[];
@@ -74,7 +78,10 @@ class AdvancedExportController
     public function attendancePdf(): void
     {
         if (!$this->requireAdmin()) return;
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        if (!\App\Services\RateLimiter::allow('export_att_pdf:'.$ip, 5, 60)) { http_response_code(429); echo 'Too Many Requests'; return; }
         if (!class_exists('TCPDF')) { header('Content-Type: text/plain'); echo 'PDF library not installed'; return; }
+        $download = ((string)($_GET['download'] ?? '0')) === '1';
         $pdo = Database::pdo();
         $where=[];$bind=[];
         $date = trim((string)($_GET['date'] ?? ''));
@@ -94,6 +101,6 @@ class AdvancedExportController
         }
         $html .= '</table>';
         $pdf->writeHTML($html);
-        $pdf->Output('attendance.pdf', 'I');
+        $pdf->Output('attendance.pdf', $download ? 'D' : 'I');
     }
 }

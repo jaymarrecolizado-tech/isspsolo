@@ -26,6 +26,12 @@ $token = function_exists('csrf_token') ? csrf_token() : '';
   </div>
 </nav>
 <div class="container py-3">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Scan</li>
+    </ol>
+  </nav>
   <h1 class="h5 mb-3">Scan QR and Capture Signature</h1>
   <div id="reader" class="mb-3"></div>
   <div class="position-fixed top-0 end-0 p-3" style="z-index:1055">

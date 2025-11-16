@@ -17,8 +17,17 @@ declare(strict_types=1);
     <div class="btn-group">
       <a class="btn btn-outline-secondary btn-sm" href="/?r=admin_import">Import</a>
       <a class="btn btn-outline-secondary btn-sm" href="/?r=admin_registrants">Registrants</a>
+      <a class="btn btn-outline-secondary btn-sm" href="/?r=admin_report">Report</a>
     </div>
   </div>
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Home</a></li>
+      <li class="breadcrumb-item"><a href="/?r=admin_registrants">Admin</a></li>
+      <li class="breadcrumb-item"><a href="/?r=admin_import">Import</a></li>
+      <li class="breadcrumb-item active" aria-current="page">History</li>
+    </ol>
+  </nav>
   <div class="table-responsive">
     <table class="table table-sm table-striped">
       <thead>
