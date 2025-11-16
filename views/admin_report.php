@@ -32,11 +32,11 @@ $token = function_exists('csrf_token') ? csrf_token() : '';
     <input type="hidden" name="download" value="0">
     <div class="col-12 col-md-6">
       <label class="form-label">Report Title</label>
-      <input name="title" class="form-control" value="Attendance Report">
+      <textarea name="title" class="form-control" rows="2">Attendance Report</textarea>
     </div>
     <div class="col-12 col-md-6">
       <label class="form-label">Subtitle</label>
-      <input name="subtitle" class="form-control" placeholder="Event / Venue / Date">
+      <textarea name="subtitle" class="form-control" rows="2" placeholder="Event / Venue / Date"></textarea>
     </div>
     <div class="col-12 col-md-4">
       <label class="form-label">Date</label>
