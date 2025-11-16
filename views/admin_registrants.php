@@ -13,7 +13,7 @@ declare(strict_types=1);
 <body class="bg-light">
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
   <div class="container"><a class="navbar-brand" href="/">Event Registration</a>
-    <div class="ms-auto btn-group"><a class="btn btn-outline-light btn-sm" href="/?r=admin_registrants">Registrants</a><a class="btn btn-outline-light btn-sm" href="/?r=admin_attendance">Attendance</a><a class="btn btn-outline-light btn-sm" href="/?r=admin_import">Import</a><a class="btn btn-outline-light btn-sm" href="/?r=admin_export">Export</a></div>
+    <div class="ms-auto btn-group"><a class="btn btn-outline-light btn-sm" href="/?r=admin_registrants">Registrants</a><a class="btn btn-outline-light btn-sm" href="/?r=admin_attendance">Attendance</a><a class="btn btn-outline-light btn-sm" href="/?r=admin_import">Import</a><a class="btn btn-outline-light btn-sm" href="/?r=admin_export">Export</a><a class="btn btn-outline-light btn-sm" href="/?r=admin_report">Report</a></div>
   </div>
 </nav>
 <div class="container py-3">

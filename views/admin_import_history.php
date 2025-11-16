@@ -17,6 +17,7 @@ declare(strict_types=1);
     <div class="btn-group">
       <a class="btn btn-outline-secondary btn-sm" href="/?r=admin_import">Import</a>
       <a class="btn btn-outline-secondary btn-sm" href="/?r=admin_registrants">Registrants</a>
+      <a class="btn btn-outline-secondary btn-sm" href="/?r=admin_report">Report</a>
     </div>
   </div>
   <div class="table-responsive">

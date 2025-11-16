@@ -21,6 +21,7 @@ $errors = $errors ?? [];
       <a class="btn btn-outline-secondary btn-sm" href="/?r=admin_registrants">Registrants</a>
       <a class="btn btn-outline-secondary btn-sm" href="/?r=admin_attendance">Attendance</a>
       <a class="btn btn-outline-secondary btn-sm" href="/?r=admin_import_history">Import History</a>
+      <a class="btn btn-outline-secondary btn-sm" href="/?r=admin_report">Report</a>
     </div>
   </div>
   <form method="post" action="/?r=admin_import_preview" enctype="multipart/form-data" class="mb-3">

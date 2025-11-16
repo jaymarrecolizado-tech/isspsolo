@@ -40,6 +40,13 @@ declare(strict_types=1);
         <a class="btn btn-outline-secondary" href="/?r=sample_csv">Download Template</a>
       </div></div>
     </div>
+    <div class="col-12 col-md-4">
+      <div class="card"><div class="card-body">
+        <h2 class="h6">Attendance Report (PDF/HTML)</h2>
+        <p class="text-muted">Design header and choose fields.</p>
+        <a class="btn btn-primary" href="/?r=admin_report">Open Report Builder</a>
+      </div></div>
+    </div>
   </div>
 </div>
 </body>

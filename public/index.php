@@ -18,6 +18,7 @@ use App\Controllers\AdminAttendanceGalleryController;
 use App\Controllers\SettingsController;
 use App\Controllers\AdminLogsController;
 use App\Controllers\AdvancedExportController;
+use App\Controllers\ReportController;
 
 spl_autoload_register(function($class){
     $prefix = 'App\\';
@@ -112,6 +113,22 @@ if ($route === 'admin_import_history') {
 if ($route === 'admin_export') {
     if (empty($_SESSION['admin_id'])) { header('Location: /?r=admin_login'); exit; }
     require dirname(__DIR__) . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR . 'admin_export.php';
+    exit;
+}
+if ($route === 'admin_report') {
+    (new ReportController())->form();
+    exit;
+}
+if ($route === 'admin_report_generate' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    (new ReportController())->generate();
+    exit;
+}
+if ($route === 'admin_report_save' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    (new ReportController())->saveTemplate();
+    exit;
+}
+if ($route === 'admin_report_load') {
+    (new ReportController())->loadTemplate();
     exit;
 }
 if ($route === 'admin_logs') {
