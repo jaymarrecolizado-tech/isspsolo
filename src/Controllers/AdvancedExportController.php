@@ -92,15 +92,26 @@ class AdvancedExportController
         $stmt = $pdo->prepare("SELECT a.id,a.attendance_date,a.time_in,p.uuid,(CONCAT(p.first_name,' ',p.last_name)) AS name,p.agency FROM attendance a JOIN participants p ON p.id=a.participant_id $sqlWhere ORDER BY a.id DESC");
         $stmt->execute($bind);
 
-        $pdf = new \TCPDF('L');
-        $pdf->AddPage('L');
-        $html = '<h3>Attendance</h3><table border="1" cellpadding="4"><tr><th>Date</th><th>Time</th><th>Name</th><th>Agency</th><th>Signature</th></tr>';
-        while ($r = $stmt->fetch()) {
-            $img = '/signature.php?aid='.$r['id'];
-            $html .= '<tr><td>'.$r['attendance_date'].'</td><td>'.$r['time_in'].'</td><td>'.$r['name'].'</td><td>'.$r['agency'].'</td><td><img src="'.$img.'" height="40"></td></tr>';
+        $rows = $stmt->fetchAll();
+        $pdf = new class('L') extends \TCPDF { public function Footer(): void { $this->SetY(-15); $this->SetFont('helvetica','I',8); $this->Cell(0,10,'Page '.$this->getAliasNumPage().'/'.$this->getAliasNbPages(),0,0,'R'); } };
+        $pdf->setPrintFooter(true);
+        $perPage = 15;
+        $total = count($rows);
+        for ($offset = 0; $offset < $total; $offset += $perPage) {
+            $pdf->AddPage('L');
+            $html = '<style>.tbl td{font-size:9px} .tbl th{font-size:9px} .tbl thead{display:table-header-group}</style>';
+            $html .= '<div style="text-align:center;font-size:16px;font-weight:bold;">Attendance</div>';
+            $html .= '<hr style="height:1px;border:0;border-top:1px solid #000;margin:2px 0 6px 0">';
+            $html .= '<table class="tbl" border="1" cellpadding="3"><thead><tr><th width="15%">Date</th><th width="10%">Time</th><th width="35%">Name</th><th width="30%">Agency</th><th width="10%">Signature</th></tr></thead><tbody>';
+            $count = min($perPage, $total - $offset);
+            for ($i = 0; $i < $count; $i++) {
+                $r = $rows[$offset + $i];
+                $img = '/signature.php?aid='.$r['id'];
+                $html .= '<tr><td width="15%">'.$r['attendance_date'].'</td><td width="10%">'.$r['time_in'].'</td><td width="35%">'.$r['name'].'</td><td width="30%">'.$r['agency'].'</td><td width="10%"><img src="'.$img.'" height="40"></td></tr>';
+            }
+            $html .= '</tbody></table>';
+            $pdf->writeHTML($html);
         }
-        $html .= '</table>';
-        $pdf->writeHTML($html);
         $pdf->Output('attendance.pdf', $download ? 'D' : 'I');
     }
 }

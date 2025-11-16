@@ -76,35 +76,49 @@ class ReportController
             $map = $this->fieldMap();
             $labels = [];
             foreach ($fields as $f) { if (isset($map[$f])) { $labels[] = strtoupper($f==='id' ? 'No.' : $map[$f]); } }
-            $headerRow = '<tr>'.implode('', array_map(fn($l)=>'<th>'.$l.'</th>', $labels)).'<th>'.strtoupper('Signature').'</th></tr>';
+            $hasNo = in_array('id', $fields, true);
+            $sigW = 10;
+            $noW = $hasNo ? 6 : 0;
+            $rem = 100 - $sigW - $noW;
+            $otherCount = count($fields) - ($hasNo ? 1 : 0);
+            $per = $otherCount > 0 ? intdiv($rem, $otherCount) : 0;
+            $lastAdjust = $otherCount > 0 ? ($rem - ($per * ($otherCount))) : 0;
+            $widths = [];
+            foreach ($fields as $i=>$f) {
+                if ($f === 'id') { $widths[] = $noW; }
+                else { $widths[] = $per + (($lastAdjust>0 && $i === (count($fields)-1)) ? $lastAdjust : 0); }
+            }
+            $headerRow = '<tr>';
+            foreach ($labels as $i=>$l) { $headerRow .= '<th width="'.$widths[$i].'%">'.$l.'</th>'; }
+            $headerRow .= '<th width="'.$sigW.'%">'.strtoupper('Signature').'</th></tr>';
             $perPage = 15;
             $total = count($rows);
             $idx = 0;
             for ($offset = 0; $offset < $total; $offset += $perPage) {
                 $html = '';
-                $html .= '<style>.title{font-size:16px;font-weight:bold;text-transform:uppercase;margin:0} .subtitle{font-size:11px;color:#333;margin:2px 0 6px} .section-title{font-size:11px;font-weight:bold;margin:4px 0} .tbl td{font-size:9px} .tbl th{font-size:9px}</style>';
+                $html .= '<style>.title{font-size:16px;font-weight:bold;text-transform:uppercase;margin:0} .subtitle{font-size:11px;color:#333;margin:2px 0 6px} .section-title{font-size:11px;font-weight:bold;margin:4px 0} .tbl td{font-size:9px} .tbl th{font-size:9px} .tbl thead{display:table-header-group}</style>';
                 $html .= '<table width="100%"><tr>';
                 $html .= '<td width="20%">'.($leftLogoPath?('<img src="data:image/'.($this->extOf($leftLogoPath)).';base64,'.base64_encode(file_get_contents($leftLogoPath)).'" height="50">'):'').'</td>';
                 $html .= '<td width="60%" align="center"><div class="title">'.nl2br(htmlspecialchars($title)).'</div>'.($subtitle!==''?('<div class="subtitle">'.nl2br(htmlspecialchars($subtitle)).'</div>'):'').'</td>';
                 $html .= '<td width="20%" align="right">'.($rightLogoPath?('<img src="data:image/'.($this->extOf($rightLogoPath)).';base64,'.base64_encode(file_get_contents($rightLogoPath)).'" height="50">'):'').'</td>';
                 $html .= '</tr></table>';
                 $html .= '<hr style="height:1px;border:0;border-top:1px solid #000;margin:2px 0 6px 0">';
-                $html .= '<div class="section-title">Registered Guest List</div><table class="tbl" border="1" cellpadding="3">'.$headerRow;
+                $html .= '<div class="section-title">Registered Guest List</div><table class="tbl" border="1" cellpadding="3"><thead>'.$headerRow.'</thead><tbody>';
                 $count = min($perPage, $total - $offset);
                 for ($i = 0; $i < $count; $i++) {
                     $r = $rows[$offset + $i];
                     $html .= '<tr>';
-                    foreach ($fields as $f) {
-                        $html .= '<td>'.($f==='id' ? (string)($idx+1) : $this->val($f, $r)).'</td>';
+                    foreach ($fields as $ci=>$f) {
+                        $html .= '<td width="'.$widths[$ci].'%">'.($f==='id' ? (string)($idx+1) : $this->val($f, $r)).'</td>';
                     }
                     $b64 = '';
                     if (!empty($r['signature_path']) && is_file($r['signature_path'])) { $b64 = base64_encode(file_get_contents($r['signature_path'])); }
                     $imgTag = $b64 !== '' ? ('<img src="data:image/png;base64,'.$b64.'" height="40">') : '';
-                    $html .= '<td>'.$imgTag.'</td>';
+                    $html .= '<td width="'.$sigW.'%">'.$imgTag.'</td>';
                     $html .= '</tr>';
                     $idx++;
                 }
-                $html .= '</table>';
+                $html .= '</tbody></table>';
                 $pdf->writeHTML($html);
                 if ($offset + $perPage < $total) { $pdf->AddPage('L'); }
             }
@@ -212,5 +226,64 @@ class ReportController
         $stmt = $pdo->prepare("SELECT a.id,a.attendance_date,a.time_in FROM attendance a JOIN participants p ON p.id=a.participant_id $sqlWhere ORDER BY a.id ASC");
         $stmt->execute($bind);
         return $stmt->fetchAll();
+    }
+
+    public function buildPdfPagesForTest(?string $date, ?string $start, ?string $end, array $fields, string $title, string $subtitle, int $perPage = 15): array
+    {
+        $pdo = Database::pdo();
+        $where=[];$bind=[];
+        $date = trim((string)$date);
+        $start = trim((string)$start);
+        $end = trim((string)$end);
+        $dateOk = $date !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date);
+        $startOk = $start !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $start);
+        $endOk = $end !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $end);
+        if ($startOk || $endOk) {
+            if ($startOk && $endOk) { $where[]='a.attendance_date BETWEEN ? AND ?'; $bind[]=$start; $bind[]=$end; }
+            elseif ($startOk) { $where[]='a.attendance_date >= ?'; $bind[]=$start; }
+            else { $where[]='a.attendance_date <= ?'; $bind[]=$end; }
+        } elseif ($dateOk) { $where[]='a.attendance_date = ?'; $bind[]=$date; }
+        $sqlWhere = $where?('WHERE '.implode(' AND ',$where)) : '';
+        $stmt = $pdo->prepare("SELECT a.id,a.signature_path,a.attendance_date,a.time_in,p.uuid,p.first_name,p.last_name,p.agency,p.designation,p.email,p.sex,p.contact_no FROM attendance a JOIN participants p ON p.id=a.participant_id $sqlWhere ORDER BY a.id ASC");
+        $stmt->execute($bind);
+        $rows = $stmt->fetchAll();
+        $map = $this->fieldMap();
+        $labels = [];
+        foreach ($fields as $f) { if (isset($map[$f])) { $labels[] = strtoupper($f==='id' ? 'No.' : $map[$f]); } }
+        $hasNo = in_array('id', $fields, true);
+        $sigW = 10;
+        $noW = $hasNo ? 6 : 0;
+        $rem = 100 - $sigW - $noW;
+        $otherCount = count($fields) - ($hasNo ? 1 : 0);
+        $per = $otherCount > 0 ? intdiv($rem, $otherCount) : 0;
+        $lastAdjust = $otherCount > 0 ? ($rem - ($per * ($otherCount))) : 0;
+        $widths = [];
+        foreach ($fields as $i=>$f) { $widths[] = ($f==='id') ? $noW : ($per + (($lastAdjust>0 && $i === (count($fields)-1)) ? $lastAdjust : 0)); }
+        $headerRow = '<tr>';
+        foreach ($labels as $i=>$l) { $headerRow .= '<th width="'.$widths[$i].'%">'.$l.'</th>'; }
+        $headerRow .= '<th width="'.$sigW.'%">'.strtoupper('Signature').'</th></tr>';
+        $pages = [];
+        $idx = 0;
+        for ($offset = 0; $offset < count($rows); $offset += $perPage) {
+            $html = '';
+            $html .= '<style>.title{font-size:16px;font-weight:bold;text-transform:uppercase;margin:0} .subtitle{font-size:11px;color:#333;margin:2px 0 6px} .section-title{font-size:11px;font-weight:bold;margin:4px 0} .tbl td{font-size:9px} .tbl th{font-size:9px} .tbl thead{display:table-header-group}</style>';
+            $html .= '<div class="title">'.nl2br(htmlspecialchars($title)).'</div>'.($subtitle!==''?('<div class="subtitle">'.nl2br(htmlspecialchars($subtitle)).'</div>'):'');
+            $html .= '<div class="section-title">Registered Guest List</div><table class="tbl" border="1" cellpadding="3"><thead>'.$headerRow.'</thead><tbody>';
+            $count = min($perPage, count($rows) - $offset);
+            for ($i = 0; $i < $count; $i++) {
+                $r = $rows[$offset + $i];
+                $html .= '<tr>';
+                foreach ($fields as $ci=>$f) { $html .= '<td width="'.$widths[$ci].'%">'.($f==='id' ? (string)($idx+1) : $this->val($f, $r)).'</td>'; }
+                $b64 = '';
+                if (!empty($r['signature_path']) && is_file($r['signature_path'])) { $b64 = base64_encode(file_get_contents($r['signature_path'])); }
+                $imgTag = $b64 !== '' ? ('<img src="data:image/png;base64,'.$b64.'" height="40">') : '';
+                $html .= '<td width="'.$sigW.'%">'.$imgTag.'</td>';
+                $html .= '</tr>';
+                $idx++;
+            }
+            $html .= '</tbody></table>';
+            $pages[] = $html;
+        }
+        return $pages;
     }
 }
