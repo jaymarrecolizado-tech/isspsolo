@@ -34,6 +34,14 @@ $token = function_exists('csrf_token') ? csrf_token() : '';
   </nav>
   <h1 class="h5 mb-3">Scan QR and Capture Signature</h1>
   <div id="reader" class="mb-3"></div>
+  <div id="insecureHint" class="alert alert-warning" style="display:none">
+    Camera access requires HTTPS or localhost. Use the file fallback below or open the app via HTTPS.
+  </div>
+  <div id="fileFallback" class="mb-3" style="display:none">
+    <label class="form-label">Scan from image file</label>
+    <input type="file" id="qrFile" accept="image/*" class="form-control">
+    <div class="form-text">Upload a photo/screenshot of a QR code.</div>
+  </div>
   <div class="position-fixed top-0 end-0 p-3" style="z-index:1055">
     <div id="saveToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
       <div class="d-flex">
@@ -65,11 +73,25 @@ let calibrated = false;
 let qrScanner;
 
 function startScan() {
+  const isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  const hint = document.getElementById('insecureHint');
+  const fallback = document.getElementById('fileFallback');
   const qrRegion = document.getElementById('reader');
+  if (!isSecure) {
+    hint.style.display = 'block';
+    fallback.style.display = 'block';
+    enableFileFallback();
+    return;
+  }
   qrScanner = new Html5Qrcode(qrRegion.id);
   Html5Qrcode.getCameras().then(devices => {
     const id = devices && devices.length ? devices[0].id : null;
-    qrScanner.start(id, { fps: 10, qrbox: 250 }, onScanSuccess);
+    if (!id) { hint.style.display='block'; fallback.style.display='block'; enableFileFallback(); return; }
+    qrScanner.start(id, { fps: 10, qrbox: 250 }, onScanSuccess).catch(() => {
+      hint.style.display='block'; fallback.style.display='block'; enableFileFallback();
+    });
+  }).catch(() => {
+    hint.style.display='block'; fallback.style.display='block'; enableFileFallback();
   });
 }
 
@@ -125,6 +147,24 @@ document.getElementById('saveBtn').addEventListener('click', () => {
 });
 
 startScan();
+
+function enableFileFallback(){
+  const input = document.getElementById('qrFile');
+  if (!input) return;
+  input.addEventListener('change', async (e)=>{
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try {
+      const qr = new Html5Qrcode('reader');
+      const text = await qr.scanFile(file, true);
+      onScanSuccess(text);
+      await qr.clear();
+    } catch(err) {
+      console.error(err);
+      document.getElementById('status').textContent = 'Failed to read QR from file';
+    }
+  });
+}
 
 function calibrateCanvas(canvas){
   const ratio = Math.max(window.devicePixelRatio || 1, 1);
