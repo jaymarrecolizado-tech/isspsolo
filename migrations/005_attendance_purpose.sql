@@ -1,0 +1,1 @@
+ALTER TABLE attendance ADD COLUMN purpose VARCHAR(20) NOT NULL DEFAULT 'standard';

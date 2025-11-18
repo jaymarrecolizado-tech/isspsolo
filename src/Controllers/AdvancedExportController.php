@@ -55,10 +55,12 @@ class AdvancedExportController
         $where=[];$bind=[];
         $date = trim((string)($_GET['date'] ?? ''));
         $agency = trim((string)($_GET['agency'] ?? ''));
+        $purpose = trim((string)($_GET['purpose'] ?? ''));
         if ($date !== '') { $where[]='a.attendance_date = ?'; $bind[]=$date; }
+        if ($purpose !== '') { $where[]='a.purpose = ?'; $bind[]=$purpose; }
         if ($agency !== '') { $where[]='p.agency LIKE ?'; $bind[]="%{$agency}%"; }
         $sqlWhere = $where?('WHERE '.implode(' AND ',$where)) : '';
-        $stmt = $pdo->prepare("SELECT a.attendance_date,a.time_in,p.uuid,(CONCAT(p.first_name,' ',p.last_name)) AS name,p.agency,a.signature_path FROM attendance a JOIN participants p ON p.id=a.participant_id $sqlWhere ORDER BY a.id DESC");
+        $stmt = $pdo->prepare("SELECT a.attendance_date,a.time_in,a.purpose,p.uuid,(CONCAT(p.first_name,' ',p.last_name)) AS name,p.agency,a.signature_path FROM attendance a JOIN participants p ON p.id=a.participant_id $sqlWhere ORDER BY a.id DESC");
         $stmt->execute($bind);
 
         $sheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
@@ -102,12 +104,12 @@ class AdvancedExportController
             $html = '<style>.tbl td{font-size:9px} .tbl th{font-size:9px} .tbl thead{display:table-header-group}</style>';
             $html .= '<div style="text-align:center;font-size:16px;font-weight:bold;">Attendance</div>';
             $html .= '<hr style="height:1px;border:0;border-top:1px solid #000;margin:2px 0 6px 0">';
-            $html .= '<table class="tbl" border="1" cellpadding="3"><thead><tr><th width="15%">Date</th><th width="10%">Time</th><th width="35%">Name</th><th width="30%">Agency</th><th width="10%">Signature</th></tr></thead><tbody>';
+            $html .= '<table class="tbl" border="1" cellpadding="3"><thead><tr><th width="15%">Date</th><th width="10%">Time</th><th width="15%">Purpose</th><th width="25%">Name</th><th width="25%">Agency</th><th width="10%">Signature</th></tr></thead><tbody>';
             $count = min($perPage, $total - $offset);
             for ($i = 0; $i < $count; $i++) {
                 $r = $rows[$offset + $i];
                 $img = '/signature.php?aid='.$r['id'];
-                $html .= '<tr><td width="15%">'.$r['attendance_date'].'</td><td width="10%">'.$r['time_in'].'</td><td width="35%">'.$r['name'].'</td><td width="30%">'.$r['agency'].'</td><td width="10%"><img src="'.$img.'" height="40"></td></tr>';
+                $html .= '<tr><td width="15%">'.$r['attendance_date'].'</td><td width="10%">'.$r['time_in'].'</td><td width="15%">'.htmlspecialchars($r['purpose']).'</td><td width="25%">'.$r['name'].'</td><td width="25%">'.$r['agency'].'</td><td width="10%"><img src="'.$img.'" height="40"></td></tr>';
             }
             $html .= '</tbody></table>';
             $pdf->writeHTML($html);

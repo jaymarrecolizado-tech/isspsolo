@@ -68,6 +68,7 @@ $token = function_exists('csrf_token') ? csrf_token() : '';
 <script>
 const csrf = document.querySelector('meta[name="csrf"]').getAttribute('content');
 let currentUuid = null;
+const purpose = new URLSearchParams(location.search).get('purpose') || 'standard';
 let sigPad;
 let calibrated = false;
 let qrScanner;
@@ -130,7 +131,7 @@ document.getElementById('saveBtn').addEventListener('click', () => {
   fetch('?r=attendance_submit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
-    body: JSON.stringify({ uuid: currentUuid, signature: data })
+    body: JSON.stringify({ uuid: currentUuid, signature: data, purpose })
   }).then(r => r.json()).then(j => {
     const el = document.getElementById('saveToast');
     el.className = 'toast align-items-center ' + (j.ok ? 'text-bg-success' : 'text-bg-danger') + ' border-0';

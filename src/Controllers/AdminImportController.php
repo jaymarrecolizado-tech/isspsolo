@@ -10,6 +10,30 @@ class AdminImportController
     private array $headers = [
         'Timestamp','Email Address','First Name','Middle Name','Last Name','Nickname','Sex','Sector','Agency','Designation','Office Email','Contact No'
     ];
+    private function synonyms(): array
+    {
+        return [
+            'Timestamp' => ['Timestamp','Time','Date','Created At'],
+            'Email Address' => ['Email Address','Email','E-mail'],
+            'First Name' => ['First Name','First','Given Name'],
+            'Middle Name' => ['Middle Name','Middle','M.I.'],
+            'Last Name' => ['Last Name','Last','Surname','Family Name'],
+            'Nickname' => ['Nickname','Nick','Preferred Name'],
+            'Sex' => ['Sex','Gender'],
+            'Sector' => ['Sector','Department','Division'],
+            'Agency' => ['Agency','Agency/Org.','Organization','Org','Company'],
+            'Designation' => ['Designation','Position','Title','Role'],
+            'Office Email' => ['Office Email','Work Email','Company Email'],
+            'Contact No' => ['Contact No','Contact Number','Mobile','Phone','Phone Number'],
+        ];
+    }
+
+    private function norm(string $s): string
+    {
+        $s = trim($s);
+        if (strncmp($s, "\xEF\xBB\xBF", 3) === 0) $s = substr($s, 3);
+        return strtolower($s);
+    }
 
     private function requireAdmin(): bool
     {
@@ -80,12 +104,36 @@ class AdminImportController
         $pdo = Database::pdo();
         $fh = fopen($file, 'r');
         $header = fgetcsv($fh);
-        $batch = [];
-        $changes = [];
-        $inserted = 0; $updated = 0; $skipped = 0; $errored = 0;
-        $chunk = 500;
+        $inserted = 0; $updated = 0; $skipped = 0; $errored = 0; $dupsFile = 0;
+        // Last-row-wins dedup by email or name+agency, merging non-empty fields
+        $dedup = [];
+        $keyOf = function(array $r): string {
+            $email = strtolower(trim((string)$r['email']));
+            if ($email !== '') return 'e:' . $email;
+            $agency = $r['agency'] !== '' ? $r['agency'] : '';
+            return 'n:' . strtolower(trim($r['first_name'].'|'.$r['last_name'].'|'.$agency));
+        };
+        $merge = function(array $a, array $b): array {
+            foreach (['timestamp','email','first_name','middle_name','last_name','nickname','sex','sector','agency','designation','office_email','contact_no'] as $k) {
+                $bv = trim((string)($b[$k] ?? ''));
+                if ($bv !== '') $a[$k] = $bv;
+            }
+            return $a;
+        };
         while (($data = fgetcsv($fh)) !== false) {
             $row = $this->rowFromMap($map, $data);
+            $status = $this->detectStatus($pdo, $row);
+            if ($status === 'Error') { $errored++; continue; }
+            $key = $keyOf($row);
+            if (isset($dedup[$key])) { $dedup[$key] = $merge($dedup[$key], $row); $dupsFile++; }
+            else { $dedup[$key] = $row; }
+        }
+        fclose($fh);
+
+        $batch = [];
+        $changes = [];
+        $chunk = 500;
+        foreach ($dedup as $row) {
             $status = $this->detectStatus($pdo, $row);
             if ($status === 'Error') { $errored++; continue; }
             $match = $this->findMatch($pdo, $row);
@@ -100,10 +148,9 @@ class AdminImportController
             }
             if (count($batch) >= $chunk) { [$i,$u,$c] = $this->runBatch($pdo, $batch); $inserted+=$i; $updated+=$u; $changes = array_merge($changes, $c); $batch = []; }
         }
-        fclose($fh);
         if ($batch) { [$i,$u,$c] = $this->runBatch($pdo, $batch); $inserted+=$i; $updated+=$u; $changes = array_merge($changes, $c); }
 
-        $summary = json_encode(['inserted'=>$inserted,'updated'=>$updated,'skipped'=>$skipped,'errored'=>$errored,'changes'=>$changes,'stored_csv'=>$file], JSON_UNESCAPED_UNICODE);
+        $summary = json_encode(['inserted'=>$inserted,'updated'=>$updated,'skipped'=>$skipped,'errored'=>$errored,'duplicates_in_file'=>$dupsFile,'changes'=>$changes,'stored_csv'=>$file], JSON_UNESCAPED_UNICODE);
         $log = $pdo->prepare('INSERT INTO import_logs (admin_id, file_name, action, duplicate_strategy, summary) VALUES (?,?,?,?,?)');
         $log->execute([(int)$_SESSION['admin_id'], basename($file), 'execute', $strategy, $summary]);
 
@@ -119,19 +166,34 @@ class AdminImportController
         require dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR . 'admin_import_history.php';
     }
 
+    private function renderPreview(array $rows, array $errors): void
+    {
+        if (!$this->requireAdmin()) return;
+        require dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR . 'admin_import.php';
+    }
+
     private function validateHeader(?array $header): bool
     {
-        if (!$header || count($header) < count($this->headers)) return false;
-        foreach ($this->headers as $h) {
-            if (!in_array($h, $header, true)) return false;
-        }
-        return true;
+        if (!$header || count($header) < 2) return false;
+        $syn = $this->synonyms();
+        $map = $this->headerMap($header);
+        // minimally require First Name and Last Name to proceed
+        return ($map['First Name'] !== false) && ($map['Last Name'] !== false);
     }
 
     private function headerMap(array $header): array
     {
         $map = [];
-        foreach ($this->headers as $h) { $map[$h] = array_search($h, $header, true); }
+        $normHeader = array_map(fn($v)=>$this->norm((string)$v), $header);
+        $syn = $this->synonyms();
+        foreach ($this->headers as $h) {
+            $found = false;
+            foreach ($syn[$h] as $cand) {
+                $i = array_search($this->norm($cand), $normHeader, true);
+                if ($i !== false) { $found = $i; break; }
+            }
+            $map[$h] = $found !== false ? (int)$found : false;
+        }
         return $map;
     }
 
@@ -191,24 +253,29 @@ class AdminImportController
             if ($item['action'] === 'insert') {
                 $uuid = \App\Services\Uuid::v4();
                 $qrPath = \App\Services\QrService::generate('PART|' . $uuid, $uuid);
-                $stmt = $pdo->prepare('INSERT INTO participants (uuid,email,first_name,middle_name,last_name,nickname,sex,sector,agency,designation,office_email,contact_no,qr_path,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
-                $stmt->execute([
-                    $uuid,
-                    $item['row']['email'] !== '' ? $item['row']['email'] : null,
-                    $item['row']['first_name'],
-                    $item['row']['middle_name'] !== '' ? $item['row']['middle_name'] : null,
-                    $item['row']['last_name'],
-                    $item['row']['nickname'] !== '' ? $item['row']['nickname'] : null,
-                    $item['row']['sex'] !== '' ? $item['row']['sex'] : null,
-                    $item['row']['sector'] !== '' ? $item['row']['sector'] : null,
-                    $item['row']['agency'] !== '' ? $item['row']['agency'] : null,
-                    $item['row']['designation'] !== '' ? $item['row']['designation'] : null,
-                    $item['row']['office_email'] !== '' ? $item['row']['office_email'] : null,
-                    $item['row']['contact_no'] !== '' ? $item['row']['contact_no'] : null,
-                    $qrPath,
-                    (int)$_SESSION['admin_id'],
-                ]);
-                $inserted++;
+                $stmt = $pdo->prepare('INSERT INTO participants (uuid,email,first_name,middle_name,last_name,nickname,sex,sector,agency,designation,office_email,contact_no,qr_path,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+                try {
+                    $stmt->execute([
+                        $uuid,
+                        $item['row']['email'] !== '' ? $item['row']['email'] : null,
+                        $item['row']['first_name'],
+                        $item['row']['middle_name'] !== '' ? $item['row']['middle_name'] : null,
+                        $item['row']['last_name'],
+                        $item['row']['nickname'] !== '' ? $item['row']['nickname'] : null,
+                        $item['row']['sex'] !== '' ? $item['row']['sex'] : null,
+                        $item['row']['sector'] !== '' ? $item['row']['sector'] : null,
+                        $item['row']['agency'] !== '' ? $item['row']['agency'] : null,
+                        $item['row']['designation'] !== '' ? $item['row']['designation'] : null,
+                        $item['row']['office_email'] !== '' ? $item['row']['office_email'] : null,
+                        $item['row']['contact_no'] !== '' ? $item['row']['contact_no'] : null,
+                        $qrPath,
+                        (int)$_SESSION['admin_id'],
+                    ]);
+                    $inserted++;
+                } catch (\PDOException $e) {
+                    // Unique constraint or other insert error: count as skipped to keep import running
+                    $skipped++;
+                }
             } else {
                 $old = $item['match'];
                 $fields = ['first_name','middle_name','last_name','nickname','sex','sector','agency','designation','office_email','contact_no'];
@@ -228,6 +295,15 @@ class AdminImportController
                     $item['row']['contact_no'] !== '' ? $item['row']['contact_no'] : null,
                     (int)$old['id'],
                 ]);
+                if (empty($old['qr_path']) || !is_file((string)$old['qr_path'])) {
+                    $uuidExisting = (string)$old['uuid'];
+                    if ($uuidExisting !== '') {
+                        $newQr = \App\Services\QrService::generate('PART|' . $uuidExisting, $uuidExisting);
+                        $upQr = $pdo->prepare('UPDATE participants SET qr_path=? WHERE id=?');
+                        $upQr->execute([$newQr, (int)$old['id']]);
+                        $changes[] = ['id'=>$old['id'],'fields'=>$changed,'qr_generated'=>true];
+                    }
+                }
                 if ($changed) $changes[] = ['id'=>$old['id'],'fields'=>$changed];
                 $updated++;
             }

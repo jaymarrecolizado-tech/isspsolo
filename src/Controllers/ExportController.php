@@ -52,19 +52,21 @@ class ExportController
         header('Content-Type: text/csv; charset=UTF-8');
         header('Content-Disposition: attachment; filename="attendance.csv"');
         $out = fopen('php://output', 'w');
-        $hdr = ['Attendance Date','Time In','UUID','Name','Agency','Signature Path'];
+        $hdr = ['Attendance Date','Time In','Purpose','UUID','Name','Agency','Signature Path'];
         fputcsv($out, $hdr);
         $pdo = Database::pdo();
         $where=[];$bind=[];
         $date = trim((string)($_GET['date'] ?? ''));
         $agency = trim((string)($_GET['agency'] ?? ''));
+        $purpose = trim((string)($_GET['purpose'] ?? ''));
         if ($date !== '') { $where[]='a.attendance_date = ?'; $bind[]=$date; }
+        if ($purpose !== '') { $where[]='a.purpose = ?'; $bind[]=$purpose; }
         if ($agency !== '') { $where[]='p.agency LIKE ?'; $bind[]="%{$agency}%"; }
         $sqlWhere = $where?('WHERE '.implode(' AND ',$where)) : '';
-        $stmt = $pdo->prepare("SELECT a.attendance_date,a.time_in,p.uuid,(CONCAT(p.first_name,' ',p.last_name)) AS name,p.agency,a.signature_path FROM attendance a JOIN participants p ON p.id=a.participant_id $sqlWhere ORDER BY a.id DESC");
+        $stmt = $pdo->prepare("SELECT a.attendance_date,a.time_in,a.purpose,p.uuid,(CONCAT(p.first_name,' ',p.last_name)) AS name,p.agency,a.signature_path FROM attendance a JOIN participants p ON p.id=a.participant_id $sqlWhere ORDER BY a.id DESC");
         $stmt->execute($bind);
         while ($r = $stmt->fetch()) {
-            fputcsv($out, [$r['attendance_date'],$r['time_in'],$r['uuid'],$r['name'],$r['agency'],$r['signature_path']]);
+            fputcsv($out, [$r['attendance_date'],$r['time_in'],$r['purpose'],$r['uuid'],$r['name'],$r['agency'],$r['signature_path']]);
         }
         fclose($out);
     }

@@ -23,6 +23,7 @@ class AttendanceController
         if (!is_array($payload)) { http_response_code(400); echo json_encode(['error'=>'invalid']); return; }
 
         $uuid = trim((string)($payload['uuid'] ?? ''));
+        $purpose = trim((string)($payload['purpose'] ?? 'standard')); if ($purpose==='') $purpose='standard';
         $sig = (string)($payload['signature'] ?? '');
         if ($uuid === '' || $sig === '') { http_response_code(422); echo json_encode(['error'=>'missing']); return; }
 
@@ -40,13 +41,13 @@ class AttendanceController
         $date = date('Y-m-d');
         $time = date('H:i:s');
         if ($enforce) {
-            $chk = $pdo->prepare('SELECT id FROM attendance WHERE participant_id=? AND attendance_date=?' . ($eventId ? ' AND event_id=?' : ''));
-            $bind = $eventId ? [(int)$row['id'],$date,$eventId] : [(int)$row['id'],$date];
+            $chk = $pdo->prepare('SELECT id FROM attendance WHERE participant_id=? AND attendance_date=? AND purpose=?' . ($eventId ? ' AND event_id=?' : ''));
+            $bind = $eventId ? [(int)$row['id'],$date,$purpose,$eventId] : [(int)$row['id'],$date,$purpose];
             $chk->execute($bind);
             if ($chk->fetch()) { echo json_encode(['ok'=>false,'error'=>'already_marked']); return; }
         }
-        $ins = $pdo->prepare('INSERT INTO attendance (participant_id, attendance_date, time_in, signature_path, event_id) VALUES (?,?,?,?,?)');
-        $ins->execute([(int)$row['id'], $date, $time, $path, $eventId]);
+        $ins = $pdo->prepare('INSERT INTO attendance (participant_id, attendance_date, time_in, signature_path, event_id, purpose) VALUES (?,?,?,?,?,?)');
+        $ins->execute([(int)$row['id'], $date, $time, $path, $eventId, $purpose]);
         echo json_encode(['ok'=>true]);
     }
 
@@ -55,6 +56,7 @@ class AttendanceController
         if (!function_exists('csrf_check') || !csrf_check($csrf)) return ['error'=>'csrf'];
         if (empty($_SESSION['staff'])) return ['error'=>'forbidden'];
         $uuid = trim((string)($payload['uuid'] ?? ''));
+        $purpose = trim((string)($payload['purpose'] ?? 'standard')); if ($purpose==='') $purpose='standard';
         $sig = (string)($payload['signature'] ?? '');
         if ($uuid === '' || $sig === '') return ['error'=>'missing'];
         $pdo = \App\Services\Database::pdo();
@@ -69,13 +71,13 @@ class AttendanceController
         $date = date('Y-m-d');
         $time = date('H:i:s');
         if ($enforce) {
-            $chk = $pdo->prepare('SELECT id FROM attendance WHERE participant_id=? AND attendance_date=?' . ($eventId ? ' AND event_id=?' : ''));
-            $bind = $eventId ? [(int)$row['id'],$date,$eventId] : [(int)$row['id'],$date];
+            $chk = $pdo->prepare('SELECT id FROM attendance WHERE participant_id=? AND attendance_date=? AND purpose=?' . ($eventId ? ' AND event_id=?' : ''));
+            $bind = $eventId ? [(int)$row['id'],$date,$purpose,$eventId] : [(int)$row['id'],$date,$purpose];
             $chk->execute($bind);
             if ($chk->fetch()) return ['ok'=>false,'error'=>'already_marked'];
         }
-        $ins = $pdo->prepare('INSERT INTO attendance (participant_id, attendance_date, time_in, signature_path, event_id) VALUES (?,?,?,?,?)');
-        $ins->execute([(int)$row['id'], $date, $time, $path, $eventId]);
+        $ins = $pdo->prepare('INSERT INTO attendance (participant_id, attendance_date, time_in, signature_path, event_id, purpose) VALUES (?,?,?,?,?,?)');
+        $ins->execute([(int)$row['id'], $date, $time, $path, $eventId, $purpose]);
         return ['ok'=>true];
     }
 }

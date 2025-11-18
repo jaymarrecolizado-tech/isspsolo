@@ -20,6 +20,8 @@ use App\Controllers\AdminLogsController;
 use App\Controllers\AdvancedExportController;
 use App\Controllers\AdminSignatureController;
 use App\Controllers\ReportController;
+use App\Controllers\AdminStatsController;
+use App\Controllers\AdminParticipantsApiController;
 
 spl_autoload_register(function($class){
     $prefix = 'App\\';
@@ -142,6 +144,14 @@ if ($route === 'admin_signature_new' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 if ($route === 'admin_logs') {
     (new AdminLogsController())->list();
+    exit;
+}
+if ($route === 'admin_stats') {
+    (new AdminStatsController())->today();
+    exit;
+}
+if ($route === 'admin_participants_search') {
+    (new AdminParticipantsApiController())->search();
     exit;
 }
 if ($route === 'admin_events') {

@@ -51,6 +51,7 @@ class AdminSignatureController
         $payload = json_decode(file_get_contents('php://input'), true);
         $uuid = trim((string)($payload['uuid'] ?? ''));
         $date = trim((string)($payload['date'] ?? date('Y-m-d')));
+        $purpose = trim((string)($payload['purpose'] ?? 'standard')); if ($purpose==='') $purpose='standard';
         if ($date !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) { http_response_code(422); echo json_encode(['error'=>'invalid_date']); return; }
         $sig = (string)($payload['signature'] ?? '');
         if ($uuid === '' || $sig === '') { http_response_code(422); echo json_encode(['error'=>'missing']); return; }
@@ -63,14 +64,14 @@ class AdminSignatureController
         $eventId = $event ? (int)$event['id'] : null;
         $enforce = $event ? (int)$event['enforce_single_time_in'] === 1 : false;
         if ($enforce) {
-            $chk = $pdo->prepare('SELECT id FROM attendance WHERE participant_id=? AND attendance_date=?' . ($eventId ? ' AND event_id=?' : ''));
-            $bind = $eventId ? [(int)$p['id'],$date,$eventId] : [(int)$p['id'],$date];
+            $chk = $pdo->prepare('SELECT id FROM attendance WHERE participant_id=? AND attendance_date=? AND purpose=?' . ($eventId ? ' AND event_id=?' : ''));
+            $bind = $eventId ? [(int)$p['id'],$date,$purpose,$eventId] : [(int)$p['id'],$date,$purpose];
             $chk->execute($bind);
             if ($chk->fetch()) { echo json_encode(['ok'=>false,'error'=>'already_marked']); return; }
         }
         $path = SignatureService::saveBase64($uuid, $sig);
-        $ins = $pdo->prepare('INSERT INTO attendance (participant_id, attendance_date, time_in, signature_path, event_id) VALUES (?,?,?,?,?)');
-        $ins->execute([(int)$p['id'], $date, date('H:i:s'), $path, $eventId]);
+        $ins = $pdo->prepare('INSERT INTO attendance (participant_id, attendance_date, time_in, signature_path, event_id, purpose) VALUES (?,?,?,?,?,?)');
+        $ins->execute([(int)$p['id'], $date, date('H:i:s'), $path, $eventId, $purpose]);
         $aid = (int)$pdo->lastInsertId();
         Logger::log($_SESSION['admin_id'] ?? null, 'signature_new', ['aid'=>$aid,'uuid'=>$uuid,'date'=>$date,'ip'=>$ip]);
         echo json_encode(['ok'=>true]);
